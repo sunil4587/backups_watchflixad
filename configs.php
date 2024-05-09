@@ -40,6 +40,9 @@
   $downloadTempFilesPath = __DIR__ . '/backup_files/';
   $tempExtractTo = $downloadTempFilesPath . '/extract_zip/';
 
+  //Reatin max no of backups to ftp server
+  $retainMaxNoOfBackups = 2;
+  
   // Debugging function
   function debug($var){
     echo "<pre>";
