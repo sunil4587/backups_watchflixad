@@ -26,7 +26,10 @@
       'movie_screenshots' => 1,
       'referral_report' => 1,
       'track_users_data' => 1,
-      'track_users_data_4_april_2023' => 1
+      'track_users_data_4_april_2023' => 1,
+      'episode_screenshots' => 1,
+      'movie_screenshots' => 1,
+      'logs' => 1
     ];
 
     // Initialize SimpleBackup instance
