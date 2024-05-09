@@ -122,9 +122,9 @@
       }
 
       // Keep only the latest four daily and weekly files
-      $sortAndLimitFiles($processedDataFiles, 2);
-      $sortAndLimitFiles($rawMovieApiDataFiles, 2);
-      $sortAndLimitFiles($rawSeriesApiDataFiles, 2);
+      $sortAndLimitFiles($processedDataFiles, $retainMaxNoOfBackups);
+      $sortAndLimitFiles($rawMovieApiDataFiles, $retainMaxNoOfBackups);
+      $sortAndLimitFiles($rawSeriesApiDataFiles, $retainMaxNoOfBackups);
     } else {
       $errorLogMessage = "Failed to get file list from FTP server, unable to delete older backups";
       file_put_contents($logFilePath, date('Y-m-d H:i:s') . ' - ' . $errorLogMessage . PHP_EOL, FILE_APPEND);
