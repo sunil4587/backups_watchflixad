@@ -30,8 +30,8 @@
     }
 
     // Determine the backup type
-    $backupType = isset($_GET['backup_type']) && $_GET['backup_type'] === 'daily' ? 'daily' : $backupType;
-    $backupFilenamePrefix = $backupType === 'daily' ? 'wf_db_daily_' : 'wf_db_weekly_';
+    $backupType = isset($_GET['backup_type']) && $_GET['backup_type'] !== "processed" ? $_GET['backup_type'] : $backupType;
+    $backupFilenamePrefix = ($backupType === "processed_data") ? "wf_db_processed_data_" : "wf_db_raw_{$backupType}_";
 
     // Get the latest backup file based on the backup type
     $latestBackupFile = null;
@@ -45,25 +45,25 @@
       return array_slice($files, 0, $limit);
     };
 
-    $dailyBackupFiles = [];
+    $pushedBackupFiles = [];
     foreach ($files as $file) {
       if (pathinfo($file, PATHINFO_EXTENSION) !== 'zip') {
         continue;
       }
 
       if (strpos($file, $backupFilenamePrefix) !== false) {
-        $dailyBackupFiles[] = $file;
+        $pushedBackupFiles[] = $file;
       }
     }
 
     // If no backup file found, log and exit
-    if (!$dailyBackupFiles) {
+    if (!$pushedBackupFiles) {
       ftp_close($ftpConn);
       throw new Exception("No backup file found for $backupType");
     }
 
     // Sort files and get the latest one
-    $latestBackupFile = $sortAndLimitFiles($dailyBackupFiles, 1)[0];
+    $latestBackupFile = $sortAndLimitFiles($pushedBackupFiles, 1)[0];
 
     // Specify the local path for the downloaded file
     $localFile = $downloadTempFilesPath . basename($latestBackupFile);

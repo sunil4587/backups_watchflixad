@@ -1,4 +1,9 @@
 <?php
+  // Set time and memory limits
+  ini_set('max_execution_time', '-1');
+  set_time_limit(-1);
+  ini_set('memory_limit', '20000M');
+  
   // Enable error reporting if debugging is enabled
   if (isset($_GET["debug"])) {
     ini_set('display_errors', 1);
@@ -8,10 +13,6 @@
 
   // Autoload vendor dependencies
   require 'vendor/autoload.php';
-  // Set time and memory limits
-  ini_set('max_execution_time', '-1');
-  set_time_limit(-1);
-  ini_set('memory_limit', '20000M');
 
   // Database connection settings
   $exportFromDB = [
@@ -22,17 +23,17 @@
   ];
 
   $importToDB = [
-    'idevelop_watchflx_dev', // database
-    'idevelop_watchflx_dev', // username
-    '#ids@335335#', // password
+    'watchfil_img_db_backup_test', // database
+    'watchfil_admin', // username
+    '#ids@335#', // password
     'localhost', // hostname
   ];
 
   // FTP connection settings
   $ftpServer = 'ftp.plumbr.pro';
-  $ftpUsername = 'watchflixad_backups@plumbr.pro';
+  $ftpUsername = 'wf_img_backups@plumbr.pro';
   $ftpPassword = '#ids@335335#';
-  $backupType = "weekly";
+  $backupType = "processed_data";
 
   // Define directories
   $exportTempFolderPath = __DIR__ . '/wf_db_temp_backup/';

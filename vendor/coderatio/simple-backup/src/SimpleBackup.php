@@ -226,7 +226,7 @@ class SimpleBackup
     public function importFrom($sql_file_OR_content, $config = [])
     {
         // Increase script loading time
-        set_time_limit(3000);
+        // set_time_limit(3000);
 
         $error_message = '';
         $error_status = true;
