@@ -22,9 +22,9 @@
   ];
 
   $importToDB = [
-    'idevelop_watchflx_dev', // database
-    'idevelop_watchflx_dev', // username
-    '#ids@335335#', // password
+    'watchfil_staging', // database
+    'watchfil_usr', // username
+    '#ids@335#', // password
     'localhost', // hostname
   ];
 

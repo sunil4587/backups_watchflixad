@@ -18,7 +18,6 @@
       'user' => 'type != 2',
     ];
     $tableRecordsLimit = [
-      'watched_history' => 5000,
       'addons' => 1,
       'archive_user' => 1,
       'ci_sessions' => 1,
@@ -39,9 +38,13 @@
 
     // Include specific tables based on backup type
     if (isset($_GET['backup_type']) && $_GET['backup_type'] === 'daily') {
-      $tablesToInclude = ['user'];
+      $tablesToInclude = ['user','subscription','watched_history','invites','requested_movies'];
       $simpleBackup->includeOnly($tablesToInclude);
       $backupType = "daily";
+    }else{
+      $tableRecordsLimit = $tableRecordsLimit + [
+        'watched_history' => 0
+      ];
     }
 
     // Set file names and paths
