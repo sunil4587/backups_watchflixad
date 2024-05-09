@@ -43,7 +43,7 @@
       $backupType = "daily";
     }else{
       $tableRecordsLimit = $tableRecordsLimit + [
-        'watched_history' => 0
+        'watched_history' => 1
       ];
     }
 
