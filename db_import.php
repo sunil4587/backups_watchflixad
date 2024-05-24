@@ -48,8 +48,6 @@
       });
       return array_slice($files, 0, $limit);
     };
-    echo $files;
-    die;
     $dailyBackupFiles = [];
     foreach ($files as $file) {
       if (pathinfo($file, PATHINFO_EXTENSION) !== 'zip') {
