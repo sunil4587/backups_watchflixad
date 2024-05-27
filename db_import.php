@@ -1,8 +1,6 @@
 <?php
 
   require_once "configs.php";
-  use Coderatio\SimpleBackup\SimpleBackup;
-
   // Define log file path
   $logFilePath = 'import_db_log.txt';
 
@@ -50,7 +48,7 @@
     };
     $dailyBackupFiles = [];
     foreach ($files as $file) {
-      if (pathinfo($file, PATHINFO_EXTENSION) !== 'zip') {
+      if (pathinfo($file, PATHINFO_EXTENSION) !== 'gz') {
         continue;
       }
 
@@ -81,47 +79,111 @@
     // Close FTP connection
     ftp_close($ftpConn);
 
-    // Unzip and import the downloaded backup file
-    $zip = new ZipArchive();
-    if ($zip->open($localFile) === TRUE) {
-      // Extract the zip file
-      $extractedPath = $tempExtractTo . pathinfo($localFile, PATHINFO_FILENAME) . '/';
-      if ($zip->extractTo($extractedPath)) {
-        logMessage("Extracted file: $localFile \n");
+    // Import DB connection
+    $pdo = new PDO("mysql:host={$importToDB['host']};dbname={$importToDB['database']}", $importToDB['username'], $importToDB['password']);
 
-        // Check for SQL files in the extracted folder
-        $sqlFiles = glob($extractedPath . '*.sql');
-        if (!empty($sqlFiles)) {
-          $sqlFile = reset($sqlFiles); // Get the first SQL file found
-          logMessage("SQL file found: $sqlFile");
+    // decompress the Gzip file
+    $sqlFileName = decompressGzipFile($localFile);
 
-          // Import data to database using SimpleBackup
-          $simpleBackup = SimpleBackup::setDatabase($importToDB)->importFrom($sqlFile);
-          $response = $simpleBackup->getResponse();
-          if ($response->status === 'success') {
-            logMessage("Database imported successfully from: $sqlFile");
-          } else {
-            logMessage("Failed to import database from: $sqlFile");
+    $sql = file_get_contents($sqlFileName);
+    // Removed blank spaces
+    $statements = array_filter(array_map('trim', explode(';', $sql)));
+
+    $multiRecords = [];
+    $existsTable = [];
+    foreach ($statements as $statement) {
+      $statement = trim($statement);
+      if (stripos($statement, 'CREATE TABLE') !== false) {
+        // Extract table name from CREATE TABLE statement
+        preg_match('/CREATE TABLE `?(\w+)`?/', $statement, $matches);
+        $tableName = $matches[1];
+
+        // If table does not exist, execute the CREATE TABLE statement
+        if( empty($existsTable[$tableName]) ){
+          if (!tableExists($pdo, $tableName)) {
+            $pdo->exec($statement);
           }
-        } else {
-          logMessage("No SQL files found in the extracted folder: $extractedPath");
+        }else{
+          // If table already exists then table will be truncated
+          $pdo->query("TRUNCATE TABLE `{$tableName}`");
         }
+        $existsTable[$tableName] = $tableName;
+      } elseif (stripos($statement, 'INSERT INTO') !== false) {
+        // Extract table name from INSERT INTO statement
+        preg_match('/INSERT INTO `?(\w+)`?/', $statement, $matches);
+        $tableName = $matches[1];
 
-        // Delete the zip file and extracted contents
-        unlink($localFile);
-        array_map('unlink', glob("$extractedPath/*"));
-        rmdir($extractedPath);
-
-        logMessage("Deleted file and extracted contents: $localFile");
-      } else {
-        logMessage("Failed to extract file: $localFile");
+        if( empty($existsTable[$tableName]) ){
+          if (!tableExists($pdo, $tableName)) {
+            logMessage("{$tableName} does not exists in the database.");
+            throw new Exception("{$tableName} does not exists in the database.");
+          }
+        }
+  
+        // If table exists, execute the INSERT INTO statement
+        $statement = utf8EncodeInsertStatement($statement);
+        list($key, $value) = explode("VALUES", $statement);
+        $multiRecords[$tableName]['values'][] = $value;
       }
-      $zip->close();
-    } else {
-      logMessage("Failed to open zip file: $localFile");
     }
+    // Add additional handling for other SQL statements as needed
+    foreach( $multiRecords as $tableName => $info ){
+      $pdo->exec( "INSERT INTO `{$tableName}` VALUES ". implode(" , ", $info['values']) );
+    }
+
+    logMessage("Database import completed");
+    // Delete the zip file and extracted contents
+    unlink($localFile);
+
   } catch (Exception $e) {
     logMessage("Error: " . $e->getMessage());
     echo "Error: " . $e->getMessage();
   }
 
+// Helper function to encode INSERT INTO statement to UTF-8
+function utf8EncodeInsertStatement($statement) {
+  // Assuming 'name' column is the problematic column
+  $statement = preg_replace_callback(
+      "/'((?:[^'\\\\]|\\\\.)*)'/",
+      function ($match) {
+          return "'" . utf8_encode($match[1]) . "'";
+      },
+      $statement
+  );
+  return $statement;
+}
+
+function decompressGzipFile($fileName) {
+  $out_file_name = str_replace('.gz', '', $fileName);
+
+  // Read lines from the compressed file
+  $lines = gzfile($fileName);
+  if ($lines === false) {
+    throw new Exception("Error reading lines from the compressed file: $fileName.");
+  }
+
+  // Write lines to the output file
+  $out_file = fopen($out_file_name, 'wb');
+  if (!$out_file) {
+    throw new Exception("Could not open the output file: $out_file_name.");
+  }
+  foreach ($lines as $line) {
+    if (fwrite($out_file, $line) === false) {
+      fclose($out_file);
+      throw new Exception("Error writing to the output file: $out_file_name.");
+    }
+  }
+
+  // Close the files
+  fclose($out_file);
+  return $out_file_name;
+}
+
+function tableExists($pdo, $tableName) {
+  try {
+    $result = $pdo->query("SELECT 1 FROM `{$tableName}` LIMIT 1");
+  } catch (Exception $e) {
+    return false;
+  }
+  return $result !== false;
+}
