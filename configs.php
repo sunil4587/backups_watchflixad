@@ -15,15 +15,15 @@
 
   // Database connection settings
   $exportFromDB = [
-    'database' => 'watchfil_movie',
-    'username' => 'watchfil_admin',
+    'database' => 'watchfil_staging',
+    'username' => 'watchfil_usr',
     'password' => '#ids@335#',
     'host' => 'localhost',
   ];
 
   $importToDB = [
-    'watchfil_staging', // database
-    'watchfil_usr', // username
+    'watchfil_auto_deploy', // database
+    'watchfil_auto_deploy', // username
     '#ids@335#', // password
     'localhost', // hostname
   ];
