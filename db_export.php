@@ -1,5 +1,4 @@
 <?php
-
   // Include configs
   require_once "configs.php";
 
@@ -41,7 +40,6 @@
     // Set file names and paths
     $fileName = "wf_db_{$backupType}_" . date('YmdHis');
     $sqlFilePath = $exportTempFolderPath . $fileName . '.sql';
-    $gzipFilePath = $exportTempFolderPath . $fileName . '.sql.gz';
 
     // Get all table names from the database
     $pdo = new PDO("mysql:host={$exportFromDB['host']};dbname={$exportFromDB['database']}", $exportFromDB['username'], $exportFromDB['password']);
@@ -55,18 +53,14 @@
         continue;
       }
 
-      // Check if the table should exclude records
-      if (in_array($table, $excludeRecordsFor)) {
-        // Get table structure
-        $structureStmt = $pdo->query("SHOW CREATE TABLE `$table`");
-        $structure = $structureStmt->fetch(PDO::FETCH_ASSOC);
-        $sqlDumpContent .= $structure['Create Table'] . ";\n\n";
-      } else {
-        // Get table structure and data
-        $structureStmt = $pdo->query("SHOW CREATE TABLE `$table`");
-        $structure = $structureStmt->fetch(PDO::FETCH_ASSOC);
-        $sqlDumpContent .= $structure['Create Table'] . ";\n\n";
+      // Get table structure
+      $structureStmt = $pdo->query("SHOW CREATE TABLE `$table`");
+      $structure = $structureStmt->fetch(PDO::FETCH_ASSOC);
+      $sqlDumpContent .= $structure['Create Table'] . ";\n\n";
 
+      // Check if the table should exclude records
+      if (!in_array($table, $excludeRecordsFor)) {
+        // Get table data
         $condition = isset($GetDataByConditiontables[$table]) ? " WHERE {$GetDataByConditiontables[$table]}" : "";
         $stmt = $pdo->query("SELECT * FROM `$table`" . $condition);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -74,21 +68,11 @@
         if (!empty($rows)) {
           $sqlDumpContent .= "-- Dump for table $table\n";
           foreach ($rows as $row) {
-            // Iterate through each row and handle JSON data
-            foreach ($row as $column => $value) {
-              if (is_array($value) || is_object($value)) {
-                // Convert JSON data to a string representation
-                $value = json_encode($value);
-              }
-              if ($value === null) {
-                $escapedValue = 'NULL';
-              } else {
-                // Escape special characters in non-null values
-                $escapedValue = $pdo->quote($value);
-              }
-              $row[$column] = $escapedValue;
-            }
-            $sqlDumpContent .= "INSERT INTO `$table` VALUES (" . implode(", ", $row) . ");\n";
+            // Generate INSERT statement for each row
+            $values = array_map(function ($value) use ($pdo) {
+              return $value === null ? 'NULL' : $pdo->quote($value);
+            }, $row);
+            $sqlDumpContent .= "INSERT INTO `$table` VALUES (" . implode(", ", $values) . ");\n";
           }
           $sqlDumpContent .= "\n";
         }
@@ -98,7 +82,12 @@
     // Write the SQL dump content to a file
     file_put_contents($sqlFilePath, $sqlDumpContent);
 
+    // Log success message
+    $successLogMessage = "Database backup '{$fileName}.sql' successfully created: $sqlFilePath";
+    file_put_contents($logFilePath, date('Y-m-d H:i:s') . ' - ' . $successLogMessage . PHP_EOL, FILE_APPEND);
+
     // Compress the SQL file with gzip
+    $gzipFilePath = $exportTempFolderPath . $fileName . '.sql.gz';
     $command = sprintf('gzip -c %s > %s', escapeshellarg($sqlFilePath), escapeshellarg($gzipFilePath));
     exec($command, $output, $result);
 
@@ -144,5 +133,5 @@
     file_put_contents($logFilePath, date('Y-m-d H:i:s') . ' - ' . $errorLogMessage . PHP_EOL, FILE_APPEND);
     echo $errorLogMessage;
   }
-  
+
 ?>
