@@ -83,8 +83,7 @@
     file_put_contents($sqlFilePath, $sqlDumpContent);
 
     // Log success message
-    $successLogMessage = "Database backup '{$fileName}.sql' successfully created: $sqlFilePath";
-    file_put_contents($logFilePath, date('Y-m-d H:i:s') . ' - ' . $successLogMessage . PHP_EOL, FILE_APPEND);
+    logMessage("Database backup '{$fileName}.sql' successfully created: $sqlFilePath");
 
     // Compress the SQL file with gzip
     $gzipFilePath = $exportTempFolderPath . $fileName . '.sql.gz';
@@ -125,12 +124,48 @@
       throw new Exception("Failed to delete created Gzip file: $gzipFilePath");
     }
 
+    unlink($zipFilePath);
+
+    // Get current directory on FTP server
+    $defaultPath = ftp_pwd($ftpConn);
+    
+    // Function to sort and limit files
+    $sortAndLimitFiles = function (&$files, $limit) use ($ftpConn) {
+      usort($files, function ($a, $b) use ($ftpConn) {
+        return ftp_mdtm($ftpConn, $a) > ftp_mdtm($ftpConn, $b) ? -1 : 1;
+      });
+      foreach (array_slice($files, $limit) as $file) {
+        ftp_delete($ftpConn, $file);
+      }
+    };
+
+    // Get file list from FTP server
+    $fileList = ftp_nlist($ftpConn, '.');
+    if (!empty($fileList)) {
+      // Separate daily and weekly backups
+      $dailyFiles = $weeklyFiles = [];
+      foreach ($fileList as $file) {
+        if (strpos($file, 'wf_db_daily_') !== false) {
+          $dailyFiles[] = $file;
+        } elseif (strpos($file, 'wf_db_weekly_') !== false) {
+          $weeklyFiles[] = $file;
+        }
+      }
+
+      // Keep only the latest four daily and weekly files
+      $sortAndLimitFiles($dailyFiles, $retainMaxNoOfBackups);
+      $sortAndLimitFiles($weeklyFiles, $retainMaxNoOfBackups);
+    } else {
+      $errorLogMessage = "Failed to get file list from FTP server, unable to delete older backups";
+      logMessage($errorLogMessage);
+    }
+    
     // Log success message
-    $successLogMessage = "Database backup '{$fileName}.sql.gz' successfully created and uploaded to server: {$ftpServer}";
-    file_put_contents($logFilePath, date('Y-m-d H:i:s') . ' - ' . $successLogMessage . PHP_EOL, FILE_APPEND);
+    $successLogMessage = "Database backup '{$fileName}.sql.gz' successfully created and uploaded to folder: {$defaultPath}, server: {$ftpServer}";
+    logMessage($successLogMessaND);
   } catch (Exception $e) {
     $errorLogMessage = "Error: " . $e->getMessage();
-    file_put_contents($logFilePath, date('Y-m-d H:i:s') . ' - ' . $errorLogMessage . PHP_EOL, FILE_APPEND);
+    logMessage($errorLogMessage);
     echo $errorLogMessage;
   }
 
