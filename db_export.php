@@ -116,15 +116,10 @@
       throw new Exception("Failed to upload GZIP file to FTP server: $ftpServer");
     }
 
-    // Close FTP connection
-    ftp_close($ftpConn);
-
     // Remove the local GZIP file
     if (!unlink($gzipFilePath)) {
       throw new Exception("Failed to delete created Gzip file: $gzipFilePath");
     }
-
-    unlink($zipFilePath);
 
     // Get current directory on FTP server
     $defaultPath = ftp_pwd($ftpConn);
@@ -160,9 +155,12 @@
       logMessage($errorLogMessage);
     }
     
+    // Close FTP connection
+    ftp_close($ftpConn);
+
     // Log success message
     $successLogMessage = "Database backup '{$fileName}.sql.gz' successfully created and uploaded to folder: {$defaultPath}, server: {$ftpServer}";
-    logMessage($successLogMessaND);
+    logMessage($successLogMessage);
   } catch (Exception $e) {
     $errorLogMessage = "Error: " . $e->getMessage();
     logMessage($errorLogMessage);
