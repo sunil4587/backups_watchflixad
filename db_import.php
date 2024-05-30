@@ -9,11 +9,6 @@
     if (!file_exists($downloadTempFilesPath) && !mkdir($downloadTempFilesPath, 0777, true)) {
       throw new Exception("Failed to create download directory");
     }
-
-    // Create the extract directory if it doesn't exist
-    if (!file_exists($tempExtractTo) && !mkdir($tempExtractTo, 0777, true)) {
-      throw new Exception("Failed to create extract directory");
-    }
     
     //Connect to FTP server
     $ftpConn = ftp_connect($ftpServer);
