@@ -90,42 +90,29 @@
 
     $sql = file_get_contents($sqlFileName);
     $statements = array_filter(array_map('trim', explode(';', $sql)));
-
-    $multiRecords = [];
     $existsTable = [];
     foreach ($statements as $statement) {
-      $statement = trim($statement);
       if (stripos($statement, 'CREATE TABLE') !== false) {
         preg_match('/CREATE TABLE `?(\w+)`?/', $statement, $matches);
         $tableName = $matches[1];
-
-        if (empty($existsTable[$tableName])) {
-          if (!tableExists($pdo, $tableName)) {
-            $pdo->exec($statement);
-          }
-        } else {
-          $pdo->query("TRUNCATE TABLE `{$tableName}`");
-        }
         $existsTable[$tableName] = $tableName;
       } elseif (stripos($statement, 'INSERT INTO') !== false) {
         preg_match('/INSERT INTO `?(\w+)`?/', $statement, $matches);
         $tableName = $matches[1];
-
-        if (empty($existsTable[$tableName])) {
-          if (!tableExists($pdo, $tableName)) {
-            logMessage("{$tableName} does not exist in the database.");
-            throw new Exception("{$tableName} does not exist in the database.");
-          }
-        }
-
-        $statement = utf8EncodeInsertStatement($statement);
-        list($key, $value) = explode("VALUES", $statement);
-        $multiRecords[$tableName]['values'][] = $value;
+        $existsTable[$tableName] = $tableName;
       }
     }
 
-    foreach ($multiRecords as $tableName => $info) {
-      $pdo->exec("INSERT INTO `{$tableName}` VALUES " . implode(" , ", $info['values']));
+    // Drop table
+    foreach($existsTable as $table){
+      if (tableExists($pdo, $tableName)) {
+        $pdo->query("DROP TABLE `{$table}`");
+      }
+    }
+    
+    // Import data into the database 
+    if( !$pdo->query($sql) ){
+      throw new Exception("Something wents wrong while importing the data into the database");
     }
 
     logMessage("Database import completed");
@@ -133,17 +120,6 @@
   } catch (Exception $e) {
     logMessage("Error: " . $e->getMessage());
     echo "Error: " . $e->getMessage();
-  }
-
-  function utf8EncodeInsertStatement($statement)
-  {
-    return preg_replace_callback(
-      "/'((?:[^'\\\\]|\\\\.)*)'/",
-      function ($match) {
-        return "'" . utf8_encode($match[1]) . "'";
-      },
-      $statement
-    );
   }
 
   function decompressGzipFile($fileName)
