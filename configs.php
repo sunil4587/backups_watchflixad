@@ -20,10 +20,10 @@
   ];
 
   $importToDB = [
-    'watchfil_auto_deploy', // database
-    'watchfil_auto_deploy', // username
-    '#ids@335#', // password
-    'localhost', // hostname
+    'database' => 'watchfil_auto_deploy',
+    'username' => 'watchfil_auto_deploy',
+    'password' => '#ids@335#',
+    'host' => 'localhost'
   ];
 
   // FTP connection settings
