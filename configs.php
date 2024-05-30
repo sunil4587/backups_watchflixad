@@ -6,8 +6,6 @@
     error_reporting(E_ALL);
   }
 
-  // Autoload vendor dependencies
-  require 'vendor/autoload.php';
   // Set time and memory limits
   ini_set('max_execution_time', '-1');
   set_time_limit(-1);
