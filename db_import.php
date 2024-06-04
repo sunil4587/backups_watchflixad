@@ -3,7 +3,7 @@
   require_once "configs.php";
   // Define log file path
   $logFilePath = 'import_db_log.txt';
-
+  ini_set('max_execution_time', '0'); // for infinite time of execution 
   try {
     // Create the backup directory if it doesn't exist
     if (!file_exists($downloadTempFilesPath) && !mkdir($downloadTempFilesPath, 0777, true)) {
@@ -100,7 +100,7 @@
 
     // Drop table
     foreach($existsTable as $table){
-      if (tableExists($pdo, $tableName)) {
+      if (tableExists($pdo, $table)) {
         $pdo->query("DROP TABLE `{$table}`");
       }
     }
@@ -112,6 +112,7 @@
 
     logMessage("Database import completed");
     unlink($localFile);
+    unlink($sqlFileName);
   } catch (Exception $e) {
     logMessage("Error: " . $e->getMessage());
     echo "Error: " . $e->getMessage();

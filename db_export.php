@@ -56,7 +56,7 @@
       // Get table structure
       $structureStmt = $pdo->query("SHOW CREATE TABLE `$table`");
       $structure = $structureStmt->fetch(PDO::FETCH_ASSOC);
-      $sqlDumpContent .= $structure['Create Table'] . ";\n\n";
+      $sqlDumpContent .= str_replace(" NOT NULL DEFAULT '0000-00-00 00:00:00' ", " NULL DEFAULT NULL ", $structure['Create Table']) . ";\n\n";
 
       // Check if the table should exclude records
       if (!in_array($table, $excludeRecordsFor)) {
@@ -68,6 +68,9 @@
         if (!empty($rows)) {
           $sqlDumpContent .= "-- Dump for table $table\n";
           foreach ($rows as $row) {
+            if( isset($row['updated_on']) && $row['updated_on'] == '0000-00-00 00:00:00' ){
+              $row['updated_on'] = NULL;
+            }
             // Generate INSERT statement for each row
             $values = array_map(function ($value) use ($pdo) {
               return $value === null ? 'NULL' : $pdo->quote($value);
