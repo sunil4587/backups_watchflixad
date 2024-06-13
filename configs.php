@@ -6,8 +6,6 @@
     error_reporting(E_ALL);
   }
 
-  // Autoload vendor dependencies
-  require 'vendor/autoload.php';
   // Set time and memory limits
   ini_set('max_execution_time', '-1');
   set_time_limit(-1);
@@ -15,17 +13,17 @@
 
   // Database connection settings
   $exportFromDB = [
-    'database' => 'watchfil_movie',
-    'username' => 'watchfil_admin',
+    'database' => 'watchfil_staging',
+    'username' => 'watchfil_usr',
     'password' => '#ids@335#',
     'host' => 'localhost',
   ];
 
   $importToDB = [
-    'watchfil_staging', // database
-    'watchfil_usr', // username
-    '#ids@335#', // password
-    'localhost', // hostname
+    'database' => 'watchfil_auto_deploy',
+    'username' => 'watchfil_auto_deploy',
+    'password' => '#ids@335#',
+    'host' => 'localhost'
   ];
 
   // FTP connection settings
